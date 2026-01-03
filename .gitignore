@@ -44,6 +44,8 @@ config_prod.ini
 # Lambda package
 package/
 lambda_deployment.zip
+lambda.zip
+lambda_package/
 
 # Iceberg warehouse
 /tmp/
