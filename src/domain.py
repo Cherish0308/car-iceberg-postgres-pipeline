@@ -1,23 +1,22 @@
-"""
-Domain models for the car pipeline.
-Following SRP: Each class has one responsibility - representing a domain entity.
-"""
 from __future__ import annotations
 
-from dataclasses import dataclass
-
-
-@dataclass(frozen=True)
 class Car:
-    """Immutable car entity."""
-    car_id: str
-    brand_name: str
-    country: str
-    model_name: str
-    model_year: int
+
+    def __init__(
+        self,
+        car_id: str,
+        brand_name: str,
+        country: str,
+        model_name: str,
+        model_year: int,
+    ) -> None:
+        self.car_id = car_id
+        self.brand_name = brand_name
+        self.country = country
+        self.model_name = model_name
+        self.model_year = model_year
 
     def to_dict(self) -> dict[str, any]:
-        """Convert to dictionary for database operations."""
         return {
             "car_id": self.car_id,
             "brand_name": self.brand_name,
@@ -27,22 +26,33 @@ class Car:
         }
 
 
-@dataclass(frozen=True)
 class CarDetail:
-    """Immutable car detail entity."""
-    car_id: str
-    engine_type: str
-    displacement: str
-    horsepower: int
-    top_speed: any  # Can be int or string based on data
-    zero_to_sixty: str
-    length: str
-    weight: str
-    fuel_economy: str
-    safety_features: str
+
+    def __init__(
+        self,
+        car_id: str,
+        engine_type: str,
+        displacement: str,
+        horsepower: int,
+        top_speed: any,
+        zero_to_sixty: str,
+        length: str,
+        weight: str,
+        fuel_economy: str,
+        safety_features: str,
+    ) -> None:
+        self.car_id = car_id
+        self.engine_type = engine_type
+        self.displacement = displacement
+        self.horsepower = horsepower
+        self.top_speed = top_speed
+        self.zero_to_sixty = zero_to_sixty
+        self.length = length
+        self.weight = weight
+        self.fuel_economy = fuel_economy
+        self.safety_features = safety_features
 
     def to_dict(self) -> dict[str, any]:
-        """Convert to dictionary for database operations."""
         return {
             "car_id": self.car_id,
             "engine_type": self.engine_type,

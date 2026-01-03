@@ -1,56 +1,43 @@
-"""
-IcebergWriter implementation following SRP, OCP, LSP, and DIP.
-SRP: Only responsible for Iceberg table operations.
-OCP: Writer protocol allows new storage backends without modifying this class.
-LSP: Can substitute any Writer implementation.
-DIP: Depends on PyIceberg catalog abstraction, can be injected.
-"""
 from __future__ import annotations
 
 from pyiceberg.catalog import load_catalog
-from config import ICEBERG_WAREHOUSE
+from config import ICEBERG_WAREHOUSE, GLUE_ENABLED, GLUE_CATALOG_NAME, AWS_REGION
 import os
+import tempfile
 
 
 class IcebergWriter:
-    """
-    Writes data to Iceberg tables with upsert support.
-    Following SRP: Single responsibility of Iceberg persistence.
-    
-    Note: PyIceberg append-only. For true UPSERT in production, use Spark with MERGE INTO.
-    """
 
     def __init__(self, catalog=None):
-        """
-        Initialize Iceberg writer.
-        
-        Args:
-            catalog: PyIceberg catalog (injectable for testing).
-        """
         if catalog is None:
-            os.makedirs(ICEBERG_WAREHOUSE, exist_ok=True)
-            catalog = load_catalog(
-                "local",
-                **{
-                    "type": "sql",
-                    "uri": f"sqlite:///{ICEBERG_WAREHOUSE}/catalog.db",
-                    "warehouse": f"file://{ICEBERG_WAREHOUSE}"
-                }
-            )
+            if GLUE_ENABLED:
+                print(f"Loading AWS Glue Catalog: {GLUE_CATALOG_NAME}")
+                print(f"Iceberg warehouse: {ICEBERG_WAREHOUSE}")
+                catalog = load_catalog(
+                    GLUE_CATALOG_NAME,
+                    **{
+                        "type": "glue",
+                        "s3.region": AWS_REGION,
+                    }
+                )
+            else:
+                catalog_path = os.path.join(tempfile.gettempdir(), "iceberg_catalog.db")
+                print(f"Loading SQLite Catalog with S3 storage")
+                print(f"Catalog DB: {catalog_path}")
+                print(f"Iceberg warehouse (S3): {ICEBERG_WAREHOUSE}")
+                
+                catalog = load_catalog(
+                    "default",
+                    **{
+                        "type": "sql",
+                        "uri": f"sqlite:///{catalog_path}",
+                        "warehouse": ICEBERG_WAREHOUSE,
+                        "s3.region": AWS_REGION,
+                    }
+                )
         self._catalog = catalog
 
     def upsert(self, table_name: str, records: list[dict]) -> None:
-        """
-        Upsert records into Iceberg table using delete + append pattern.
-        
-        UPSERT Strategy:
-        1. Delete existing records with matching car_ids
-        2. Append new records
-        
-        Args:
-            table_name: Table name to upsert into.
-            records: List of records as dictionaries.
-        """
         if not records:
             return
         
@@ -59,7 +46,6 @@ class IcebergWriter:
             
             table = self._catalog.load_table(f"default.{table_name}")
             
-            # Create explicit PyArrow schema matching Iceberg
             if table_name == "cars":
                 schema = pa.schema([
                     pa.field("car_id", pa.string(), nullable=False),
@@ -84,22 +70,21 @@ class IcebergWriter:
             else:
                 raise ValueError(f"Unknown table: {table_name}")
             
-            # New data
             new_df = pa.Table.from_pylist(records, schema=schema)
-            new_car_ids = [records[r]['car_id'] for r in range(len(records))]
+            new_car_ids = [record['car_id'] for record in records]
             
-            # Delete existing records with matching car_ids (UPSERT: delete old)
+            from pyiceberg.expressions import In
             try:
-                from pyiceberg.expressions import In
-                table.delete(In("car_id", new_car_ids))
-            except Exception:
-                # Table might be empty on first run
-                pass
+                delete_filter = In("car_id", new_car_ids)
+                table.delete(delete_filter)
+                print(f"  Deleted existing records for {len(new_car_ids)} car_ids from {table_name}")
+            except Exception as del_err:
+                print(f"  Delete operation skipped for {table_name}: {del_err}")
             
-            # Append new records (UPSERT: insert new/updated)
             table.append(new_df)
+            print(f"  Appended {len(records)} records to {table_name}")
             
         except Exception as e:
-            # Log but don't fail the entire pipeline
+            print(f"Warning: Iceberg write failed for {table_name}: {e}")
             print(f"Warning: Iceberg write failed for {table_name}: {e}")
 

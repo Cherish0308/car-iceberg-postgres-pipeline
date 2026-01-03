@@ -1,6 +1,3 @@
-"""
-PostgresWriter implementation following SRP, OCP, LSP, and DIP.
-"""
 from __future__ import annotations
 
 from collections.abc import Sequence
@@ -12,14 +9,11 @@ from interfaces import Writer
 
 
 class PostgresWriter(Writer):
-   
 
     def __init__(self, engine=None):
-        
         self._engine = engine or create_engine(POSTGRES_URL)
 
     def upsert(self, table: str, records: Sequence[dict[str, any]]) -> None:
-       
         records = list(records)
         if not records:
             return

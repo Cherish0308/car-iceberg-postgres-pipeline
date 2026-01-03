@@ -1,28 +1,40 @@
 [tool.poetry]
 name = "car-pipeline"
 version = "0.1.0"
-description = "Car ingestion pipeline with Postgres and Iceberg"
-authors = ["Charish Bhimarasetty"]
+description = "Car data pipeline: reads nested JSON from S3, flattens, and writes to Postgres & Iceberg tables with UPSERT support"
+authors = ["Charish Bhimarasetty <charish@example.com>"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Cherish0308/car-data-pipeline"
+keywords = ["data-pipeline", "postgres", "iceberg", "aws-lambda", "s3"]
 
 packages = [
-    { include = "*", from = "src" }
+    { include = "car_pipeline", from = "src" }
 ]
 
 [tool.poetry.dependencies]
 python = "^3.12"
-
 boto3 = "^1.34"
-
 sqlalchemy = "^2.0"
 psycopg2-binary = "^2.9"
-
 pyiceberg = "^0.6"
-
-configparser = "*"
+configparser = "^7.2"
+pyarrow = "^22.0.0"
+numpy = "^2.4.0"
+pandas = "^2.3.3"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.0"
+setuptools = "^80.9.0"
 
 [build-system]
 requires = ["poetry-core>=1.7.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.poetry.scripts]

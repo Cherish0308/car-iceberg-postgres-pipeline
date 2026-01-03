@@ -1,8 +1,3 @@
-"""
-Flattener implementation following SRP and OCP.
-SRP: Only responsible for flattening nested JSON into domain entities.
-OCP: New flattening strategies can be added by creating new Flattener classes.
-"""
 from __future__ import annotations
 
 import hashlib
@@ -13,19 +8,13 @@ from interfaces import Flattener
 
 
 def _generate_car_id(brand: str, model: str, year: int) -> str:
-    """Generate deterministic car ID from key fields."""
     raw = f"{brand}_{model}_{year}"
     return hashlib.md5(raw.encode()).hexdigest()
 
 
 class CarFlattener(Flattener):
-    """
-    Flattens nested car JSON into Car and CarDetail entities.
-    Following SRP: Single responsibility of transforming nested data.
-    """
 
     def flatten(self, json_data: dict[str, any]) -> tuple[Sequence[Car], Sequence[CarDetail]]:
-        """Flatten nested JSON into normalized Car and CarDetail objects."""
         cars = []
         car_details = []
 
