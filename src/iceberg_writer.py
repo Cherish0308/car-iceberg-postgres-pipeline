@@ -86,5 +86,4 @@ class IcebergWriter:
             
         except Exception as e:
             print(f"Warning: Iceberg write failed for {table_name}: {e}")
-            print(f"Warning: Iceberg write failed for {table_name}: {e}")
 
